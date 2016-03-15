@@ -1,0 +1,23 @@
+---
+- name: Define geocouch_ebin_dir.
+  shell: ls -1 {{ couchdb_erl_libs_dir.stdout }}/geocouch/ebin
+  register: geocouch_ebin_dir
+  changed_when: false
+  always_run: yes
+
+- name: Ensure ebin files exists.
+  shell: >
+    cp -n {{ couchdb_erl_libs_dir.stdout }}/geocouch/ebin/{{ item }} {{ item }}
+    chdir={{ couchdb_erl_libs_dir_ebin }}
+    creates={{ item }}
+  with_items: "{{ geocouch_ebin_dir.stdout_lines }}"
+  notify: restart couchdb
+
+- name: Ensure geocouch.ini files exists.
+  shell: >
+    cp -n {{ couchdb_erl_libs_dir.stdout }}/geocouch/etc/couchdb/default.d/{{ item }} {{ item }}
+    chdir=/etc/couchdb/default.d/
+    creates={{ item }}
+  with_items:
+    - geocouch.ini
+  notify: restart couchdb

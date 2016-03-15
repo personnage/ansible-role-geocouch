@@ -1,0 +1,64 @@
+---
+- name: Define couchdb_erl_libs_dir.
+  shell: 'couch-config --erl-libs-dir'
+  register: couchdb_erl_libs_dir
+  changed_when: false
+  always_run: yes
+
+- name: Define couchdb_static_dir.
+  shell: 'couch-config --static-dir'
+  register: couchdb_static_dir
+  changed_when: false
+  always_run: yes
+
+- name: Define couchdb_version.
+  shell: 'couch-config --couch-version'
+  register: couchdb_version
+  changed_when: false
+  always_run: yes
+
+- name: Define couchdb_erl_libs_dir_ebin.
+  set_fact:
+    couchdb_erl_libs_dir_ebin: "{{ couchdb_erl_libs_dir.stdout }}/couch-{{ couchdb_version.stdout }}/ebin"
+  when: couchdb_erl_libs_dir_ebin is not defined
+
+- name: Define couchdb_erl_libs_dir_inc.
+  set_fact:
+    couchdb_erl_libs_dir_inc: "{{ couchdb_erl_libs_dir.stdout }}/couch-{{ couchdb_version.stdout }}/include"
+  when: couchdb_erl_libs_dir_inc is not defined
+
+- name: Define couchdb_static_dir_script.
+  set_fact:
+    couchdb_static_dir_script: "{{ couchdb_static_dir.stdout }}/www/script"
+  when: couchdb_static_dir_script is not defined
+
+- name: Check if Geocouch is installed.
+  uri:
+    url: http://127.0.0.1:5984/_config/httpd_design_handlers/_spatial
+    return_content: yes
+  register: geocouch_installed
+  changed_when: false
+  failed_when: false
+
+- name: Clone the Geocouch repository.
+  git:
+    repo: https://github.com/couchbase/geocouch.git
+    dest: "{{ couchdb_erl_libs_dir.stdout }}/geocouch"
+    version: "{{ geocouch_version }}"
+    accept_hostkey: yes
+    depth: 1
+  when: "'couch_spatial_http' not in geocouch_installed.content"
+
+- name: Make Geocouch.
+  shell: >
+    make
+    chdir={{ couchdb_erl_libs_dir.stdout }}/geocouch
+  environment:
+    ERL_COMPILER_OPTIONS: "[{i, \"{{ couchdb_erl_libs_dir_inc }}\"}]"
+  when: "'couch_spatial_http' not in geocouch_installed.content"
+
+# Copy geocouch files.
+- include: copy-files.yml
+
+# Include JS-tests in couch_tests.js
+- { include: add-tests.yml, when: geocouch_inclide_js_test == true }

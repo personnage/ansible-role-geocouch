@@ -1,0 +1,30 @@
+---
+- name: Define geocouch_test_dir.
+  shell: ls -1 {{ couchdb_erl_libs_dir.stdout }}/geocouch/share/www/script/test
+  register: geocouch_test_dir
+  changed_when: false
+  always_run: yes
+
+- name: Ensure test files exists.
+  shell: >
+    cp -n {{ couchdb_erl_libs_dir.stdout }}/geocouch/share/www/script/test/{{ item }} {{ item }}
+    chdir={{ couchdb_static_dir_script }}/test
+    creates={{ item }}
+  with_items: "{{ geocouch_test_dir.stdout_lines }}"
+  notify: restart couchdb
+
+- name: Add JS-test for GeoCouch.
+  lineinfile:
+    dest: "{{ couchdb_static_dir_script }}/couch_tests.js"
+    line: "{{ item }}"
+    state: present
+  with_items:
+    - "loadTest(\"spatial.js\");"
+    - "loadTest(\"list_spatial.js\");"
+    - "loadTest(\"etags_spatial.js\");"
+    - "loadTest(\"multiple_spatial_rows.js\");"
+    - "loadTest(\"spatial_compaction.js\");"
+    - "loadTest(\"spatial_design_docs.js\");"
+    - "loadTest(\"spatial_bugfixes.js\");"
+    - "loadTest(\"spatial_offsets.js\");"
+  notify: restart couchdb

@@ -1,0 +1,3 @@
+---
+geocouch_inclide_js_test: true
+geocouch_version: "couchdb1.3.x"
