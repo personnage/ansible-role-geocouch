@@ -1,0 +1,5 @@
+---
+- hosts: all
+  roles:
+    - role: personnage.couchdb
+    - role: role_under_test
