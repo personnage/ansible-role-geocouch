@@ -16,8 +16,8 @@
 - name: Ensure geocouch.ini files exists.
   shell: >
     cp -n {{ couchdb_erl_libs_dir.stdout }}/geocouch/etc/couchdb/default.d/{{ item }} {{ item }}
-    chdir=/etc/couchdb/default.d/
+    chdir={{ geocouch_conf_dir }}
     creates={{ item }}
   with_items:
-    - geocouch.ini
+    - "{{ geocouch_conf_file }}"
   notify: restart couchdb

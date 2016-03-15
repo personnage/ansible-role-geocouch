@@ -1,0 +1,2 @@
+---
+__geocouch_conf_dir: "/etc/couchdb/local.d"

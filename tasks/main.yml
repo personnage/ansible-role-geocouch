@@ -1,4 +1,18 @@
 ---
+# Variable setup.
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Define geocouch_conf_dir.
+  set_fact:
+    geocouch_conf_dir: "{{ __geocouch_conf_dir }}"
+  when: geocouch_conf_dir is not defined
+
+- name: Define geocouch_conf_file.
+  set_fact:
+    geocouch_conf_file: "geocouch.ini"
+  when: geocouch_conf_file is not defined
+
 - name: Define couchdb_erl_libs_dir.
   shell: 'couch-config --erl-libs-dir'
   register: couchdb_erl_libs_dir
@@ -33,12 +47,9 @@
   when: couchdb_static_dir_script is not defined
 
 - name: Check if Geocouch is installed.
-  uri:
-    url: http://127.0.0.1:5984/_config/httpd_design_handlers/_spatial
-    return_content: yes
+  stat: path={{ geocouch_conf_dir }}/{{ geocouch_conf_file }}
   register: geocouch_installed
-  # changed_when: false
-  # failed_when: false
+  changed_when: false
 
 - name: Clone the Geocouch repository.
   git:
@@ -47,7 +58,7 @@
     version: "{{ geocouch_version }}"
     accept_hostkey: yes
     depth: 1
-  when: "'couch_spatial_http' not in geocouch_installed.content"
+  when: geocouch_installed.stat.exists == false
 
 - name: Make Geocouch.
   shell: >
@@ -55,7 +66,7 @@
     chdir={{ couchdb_erl_libs_dir.stdout }}/geocouch
   environment:
     ERL_COMPILER_OPTIONS: "[{i, \"{{ couchdb_erl_libs_dir_inc }}\"}]"
-  when: "'couch_spatial_http' not in geocouch_installed.content"
+  when: geocouch_installed.stat.exists == false
 
 # Copy geocouch files.
 - include: copy-files.yml
