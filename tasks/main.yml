@@ -51,6 +51,12 @@
   register: geocouch_installed
   changed_when: false
 
+- name: Ensure dependencies for building from source are installed (Debian).
+  apt: "pkg={{ item }} state=installed"
+  with_items:
+    - build-essential
+  when: ansible_os_family == 'Debian'
+
 - name: Clone the Geocouch repository.
   git:
     repo: https://github.com/couchbase/geocouch.git
