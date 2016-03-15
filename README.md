@@ -15,10 +15,6 @@ Available variables are listed below, along with default values (see `defaults/m
     geocouch_inclide_js_test: true
     geocouch_version: "couchdb1.3.x"
 
-## Bash script
-
-[Install GeoCouch](https://gist.github.com/janl/5197524)
-
 ## Dependencies
 
     - personnage.couchdb
