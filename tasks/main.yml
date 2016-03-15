@@ -37,8 +37,8 @@
     url: http://127.0.0.1:5984/_config/httpd_design_handlers/_spatial
     return_content: yes
   register: geocouch_installed
-  changed_when: false
-  failed_when: false
+  # changed_when: false
+  # failed_when: false
 
 - name: Clone the Geocouch repository.
   git:
