@@ -1,5 +1,7 @@
 ---
-- hosts: all
+- hosts: localhost
+  remote_user: root
+
   roles:
-    - role: personnage.couchdb
-    - role: role_under_test
+    - personnage.couchdb
+    - ansible-role-geocouch

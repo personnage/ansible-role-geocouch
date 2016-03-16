@@ -1,52 +1,40 @@
 ---
 sudo: required
+language: python
+python: "2.7"
 
 env:
-  - distribution: ubuntu
-    version: 14.04
-    init: /sbin/init
-    run_opts: ""
-  - distribution: ubuntu
-    version: 12.04
-    init: /sbin/init
-    run_opts: ""
-
-services:
-  - docker
+  - SITE=test.yml
 
 before_install:
-  # - sudo apt-get update
-  # Pull container
-  - 'sudo docker pull ${distribution}:${version}'
-  # Customize container
-  - 'sudo docker build --rm=true --file=tests/Dockerfile.${distribution}-${version} --tag=${distribution}-${version}:ansible tests'
+  - sudo apt-get update -qq
+
+install:
+  # Install Ansible.
+  - pip install ansible requests
+
+  # Add ansible.cfg to pick up roles path.
+  - "{ echo '[defaults]'; echo 'roles_path = ../'; } >> ansible.cfg"
+
+  # Install dependencies.
+  - ansible-galaxy install personnage.couchdb
 
 script:
-  - container_id=$(mktemp)
-  # Run container in detached state
-  - 'sudo docker run --detach --volume="${PWD}":/etc/ansible/roles/role_under_test:ro ${run_opts} ${distribution}-${version}:ansible "${init}" > "${container_id}"'
+  # Check the role/playbook's syntax.
+  - "ansible-playbook -i tests/inventory tests/$SITE --syntax-check"
 
-  # Install required Galaxy roles.
-  - 'sudo docker exec --tty "$(cat ${container_id})" env TERM=xterm ansible-galaxy install personnage.couchdb'
+  # Run the role/playbook with ansible-playbook.
+  - "ansible-playbook -i tests/inventory tests/$SITE --connection=local --sudo"
 
-  # Ansible syntax check.
-  - 'sudo docker exec --tty "$(cat ${container_id})" env TERM=xterm ansible-playbook /etc/ansible/roles/role_under_test/tests/test.yml --syntax-check'
-
-  # Test role.
-  - 'sudo docker exec --tty "$(cat ${container_id})" env TERM=xterm ansible-playbook /etc/ansible/roles/role_under_test/tests/test.yml'
-
-  # Test role idempotence.
+  # Run the role/playbook again, checking to make sure it's idempotent.
   - >
-    sudo docker exec "$(cat ${container_id})" ansible-playbook /etc/ansible/roles/role_under_test/tests/test.yml
+    ansible-playbook -i tests/inventory tests/$SITE --connection=local --sudo
     | grep -q 'changed=0.*failed=0'
     && (echo 'Idempotence test: pass' && exit 0)
     || (echo 'Idempotence test: fail' && exit 1)
 
-  # Ensure GeoCouch configurations have taken effect.
-  - 'sudo docker exec --tty "$(cat ${container_id})" env TERM=xterm /usr/bin/couchdb -c | grep -qF "geocouch.ini"'
-
-  # Clean up
-  - 'sudo docker stop "$(cat ${container_id})"'
+  # Run script to test if geocouch is available and working.
+  - python tests/test-geocouch.py
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/
