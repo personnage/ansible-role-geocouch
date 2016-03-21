@@ -21,3 +21,12 @@
   with_items:
     - "{{ geocouch_conf_file }}"
   notify: restart couchdb
+
+- name: Set permission.
+  file:
+    path: "{{ geocouch_conf_dir }}/{{ geocouch_conf_file }}"
+    owner: couchdb
+    group: couchdb
+    mode: 0644
+    state: file
+  notify: restart couchdb
